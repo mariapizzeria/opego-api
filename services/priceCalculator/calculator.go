@@ -44,7 +44,10 @@ func PriceCalculation(tariff string, from string, to string, services []string) 
 		}
 	}
 
-	route := &Route{}
+	route := &Route{
+		From: from,
+		To:   to,
+	}
 
 	routePrice, err := route.calculateRideCost(route)
 	if err != nil {
