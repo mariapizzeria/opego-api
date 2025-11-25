@@ -1,5 +1,7 @@
 package priceCalculator
 
+import "math/rand"
+
 const (
 	pet          = 50
 	luggage_rack = 100
@@ -55,9 +57,10 @@ func PriceCalculation(tariff string, from string, to string, services []string) 
 func (r *Route) calculateRideCost(route *Route) (int, error) {
 	// api яндекс маршрутизатора не предоставляеться физ.лицам
 	var total int
-
-	path := len(route.From) + len(route.To)
-
+	var path int
+	if route.From != "" && route.To != "" {
+		path = rand.Intn(20)
+	}
 	switch {
 	case path < 10:
 		total = 100
