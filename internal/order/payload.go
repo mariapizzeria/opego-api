@@ -12,7 +12,7 @@ type OrderRequest struct {
 }
 
 type OrderResponse struct {
-	//OrderId          uint           `json:"order_id"`
+	OrderId          uint           `json:"order_id" gorm:"primary_key"`
 	PassengerId      uint           `json:"passenger,omitempty" gorm:"foreignKey:PassengerId;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	OrderStatus      string         `json:"order_status"`
 	DriverAssigned   *uint          `json:"driver,omitempty" gorm:"default:null"`

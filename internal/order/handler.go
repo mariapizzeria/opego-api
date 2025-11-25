@@ -3,6 +3,7 @@ package order
 import (
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/mariapizzeria/opego-api/pkg/customErrors"
 	"github.com/mariapizzeria/opego-api/pkg/response"
@@ -62,7 +63,6 @@ func (handler *Handler) createOrder() http.HandlerFunc {
 			customErrors.ServerError(w)
 			return
 		}
-		log.Print("Im in handler")
 		result, err := handler.Repository.createOrder(&OrderResponse{
 			PassengerId:      body.PassengerId,
 			OrderStatus:      "pending",
@@ -112,14 +112,14 @@ func (handler *Handler) createArriveCode() http.HandlerFunc {
 			customErrors.EmptyInput(w)
 			return
 		}
-		//orderId, err := strconv.Atoi(orderIdStr)
-		//if err != nil {
-		//	customErrors.ServerError(w)
-		//	return
-		//}
+		orderId, err := strconv.Atoi(orderIdStr)
+		if err != nil {
+			customErrors.ServerError(w)
+			return
+		}
 		code := notifications.GenerateArrivedCode()
 		result := OrderResponse{
-			//OrderId:     uint(orderId),
+			OrderId:     uint(orderId),
 			OrderStatus: statusArrivedCode,
 			ArrivedCode: code,
 		}
