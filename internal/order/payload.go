@@ -1,6 +1,10 @@
 package order
 
-import "github.com/lib/pq"
+import (
+	"time"
+
+	"github.com/lib/pq"
+)
 
 type OrderRequest struct {
 	PassengerId      uint           `json:"passenger_id"`
@@ -13,6 +17,9 @@ type OrderRequest struct {
 
 type OrderResponse struct {
 	OrderId          uint           `json:"order_id" gorm:"primary_key"`
+	UpdatedAt        time.Time      `json:"updated_at"`
+	CreatedAt        time.Time      `json:"created_at"`
+	CanceledAt       *time.Time     `json:"canceled_at" gorm:"index"`
 	PassengerId      uint           `json:"passenger,omitempty" gorm:"foreignKey:PassengerId;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	OrderStatus      string         `json:"order_status"`
 	DriverAssigned   *uint          `json:"driver,omitempty" gorm:"default:null"`

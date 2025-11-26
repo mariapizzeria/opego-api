@@ -9,3 +9,11 @@ func EmptyInput(w http.ResponseWriter) {
 func ServerError(w http.ResponseWriter) {
 	http.Error(w, "Server Error", http.StatusInternalServerError)
 }
+
+func CancelOrderError(w http.ResponseWriter) {
+	http.Error(w, "Cannot cancel an order. Incorrect status", http.StatusMethodNotAllowed)
+}
+
+func OrderNotFoundError(w http.ResponseWriter) {
+	http.Error(w, "Order not found or doesn't exist", http.StatusNotFound)
+}

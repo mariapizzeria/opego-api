@@ -11,7 +11,9 @@ import (
 )
 
 const (
-	statusArrivedCode = "waiting_for_confirmation"
+	statusArrivedCode     = "waiting_for_confirmation"
+	orderStatusInProgress = "in_progress"
+	orderStatusCompleted  = "completed"
 )
 
 type Handler struct {
@@ -83,12 +85,31 @@ func (handler *Handler) createOrder() http.HandlerFunc {
 
 func (handler *Handler) cancelOrder() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		orderId := r.URL.Query().Get("order_id")
+		orderId := r.PathValue("order_id")
 		if orderId == "" {
 			customErrors.EmptyInput(w)
 			return
 		}
-		// логика отмены заказа
+		idUint, err := strconv.ParseUint(orderId, 10, 64)
+		if err != nil {
+			customErrors.ServerError(w)
+			return
+		}
+		orderStatus, err := handler.Repository.getOrderStatus(uint(idUint))
+		if err != nil {
+			customErrors.ServerError(w)
+			return
+		}
+		if orderStatus == orderStatusCompleted || orderStatus == orderStatusInProgress {
+			customErrors.CancelOrderError(w)
+			return
+		}
+		err = handler.Repository.cancelOrder(uint(idUint))
+		if err != nil {
+			customErrors.OrderNotFoundError(w)
+			return
+		}
+		response.JsonEncoder(w, nil, 204)
 	}
 }
 
