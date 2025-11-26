@@ -1,7 +1,6 @@
 package order
 
 import (
-	"log"
 	"net/http"
 	"strconv"
 
@@ -73,7 +72,6 @@ func (handler *Handler) createOrder() http.HandlerFunc {
 			Comment:          body.Comment,
 			Price:            price,
 		})
-		log.Print("I passed the db func")
 		if err != nil {
 			customErrors.ServerError(w)
 			return
