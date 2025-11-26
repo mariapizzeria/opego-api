@@ -38,9 +38,17 @@ type OrderStatusResponse struct {
 }
 
 type Driver struct {
-	DriverId  uint   `json:"driver_id" gorm:"primary_key"`
-	Name      string `json:"name"`
-	CarType   string `json:"car_type"`
-	CarNumber string `json:"car_number"`
-	Score     string `json:"score"`
+	DriverId        uint   `json:"driver_id" gorm:"primary_key"`
+	Name            string `json:"name"`
+	CarType         string `json:"car_type"`
+	CarNumber       string `json:"car_number"`
+	Score           string `json:"score"`
+	Available       bool   `json:"available"`
+	CurrentLocation string `json:"current_location"`
+}
+
+type DriverStatus struct {
+	DriverId        uint   `json:"driver_id" gorm:"primary_key"`
+	Available       bool   `json:"available"`
+	CurrentLocation string `json:"current_location"`
 }

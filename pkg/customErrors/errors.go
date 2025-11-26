@@ -25,3 +25,7 @@ func OrderStatusChangedError(w http.ResponseWriter) {
 func AssignDriverError(w http.ResponseWriter) {
 	http.Error(w, "Cannot assign driver", http.StatusMethodNotAllowed)
 }
+
+func DriverIsNotAvailable(w http.ResponseWriter) {
+	http.Error(w, "Driver is not available", http.StatusMethodNotAllowed)
+}

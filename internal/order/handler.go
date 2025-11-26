@@ -34,7 +34,8 @@ func NewHandler(router *http.ServeMux, deps HandlerDeps) {
 	router.HandleFunc("GET /api/order/{order_id}", handler.getOrderStatus())
 	router.HandleFunc("POST /api/order", handler.createOrder())                   // сделано
 	router.HandleFunc("POST /api/order/{order_id}/cancel", handler.cancelOrder()) // сделано
-	router.HandleFunc("POST /api/order/{order_id}/accept", handler.acceptOrder())
+	router.HandleFunc("POST /api/order/{order_id}/accept", handler.acceptOrder()) // частично сделано. Добавить проверку кук пользователя
+	router.HandleFunc("POST /api/driver/status", handler.acceptDriverStatus())    // сделано
 	router.HandleFunc("POST /api/order/{order_id}/arrived", handler.createArriveCode())
 	router.HandleFunc("PUT /api/order/{order_id}/status", handler.updateOrderStatus())
 	router.HandleFunc("PUT /api/order/{order_id}/status/search", handler.updateOrderStatusSearch()) // сделано
@@ -121,6 +122,26 @@ func (handler *Handler) cancelOrder() http.HandlerFunc {
 	}
 }
 
+func (handler *Handler) acceptDriverStatus() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		body, err := response.HandleBody[Driver](w, r)
+		if err != nil {
+			customErrors.ServerError(w)
+			return
+		}
+		res, err := handler.Repository.updateDriverStatus(&DriverStatus{
+			DriverId:        body.DriverId,
+			Available:       body.Available,
+			CurrentLocation: body.CurrentLocation,
+		})
+		if err != nil {
+			customErrors.DriverIsNotAvailable(w)
+			return
+		}
+		response.JsonEncoder(w, res, 200)
+	}
+}
+
 func (handler *Handler) acceptOrder() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		orderIdStr := r.PathValue("order_id")
@@ -147,7 +168,7 @@ func (handler *Handler) acceptOrder() http.HandlerFunc {
 		// если id сесси прошло проверку то изменяем статус заказа передавая id
 
 		var session_id uint
-		session_id = 1
+		session_id = 2
 
 		driver, err := handler.Repository.assignDriver(uint(orderId), session_id)
 		if err != nil {
