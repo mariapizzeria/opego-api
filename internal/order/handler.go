@@ -16,6 +16,7 @@ const (
 	orderStatusCompleted              = "completed"
 	orderStatusSearching              = "searching"
 	orderStatusDriverAssigned         = "driver_assigned"
+	orderStatusCanceled               = "canceled"
 )
 
 type Handler struct {
@@ -36,7 +37,7 @@ func NewHandler(router *http.ServeMux, deps HandlerDeps) {
 	router.HandleFunc("POST /api/order/{order_id}/accept", handler.acceptOrder())
 	router.HandleFunc("POST /api/order/{order_id}/arrived", handler.createArriveCode())
 	router.HandleFunc("PUT /api/order/{order_id}/status", handler.updateOrderStatus())
-	router.HandleFunc("PUT /api/order/{order_id}/status/search", handler.updateOrderStatusSearch())
+	router.HandleFunc("PUT /api/order/{order_id}/status/search", handler.updateOrderStatusSearch()) // сделано
 }
 
 func (handler *Handler) getOrderStatus() http.HandlerFunc {
@@ -88,12 +89,12 @@ func (handler *Handler) createOrder() http.HandlerFunc {
 
 func (handler *Handler) cancelOrder() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		orderId := r.PathValue("order_id")
-		if orderId == "" {
+		orderIdStr := r.PathValue("order_id")
+		if orderIdStr == "" {
 			customErrors.EmptyInput(w)
 			return
 		}
-		idUint, err := strconv.ParseUint(orderId, 10, 64)
+		idUint, err := strconv.ParseUint(orderIdStr, 10, 64)
 		if err != nil {
 			customErrors.ServerError(w)
 			return
@@ -112,6 +113,10 @@ func (handler *Handler) cancelOrder() http.HandlerFunc {
 			customErrors.OrderNotFoundError(w)
 			return
 		}
+		_, err = handler.Repository.updateOrderStatus(&OrderStatusResponse{
+			OrderId:     uint(idUint),
+			OrderStatus: orderStatusCanceled,
+		})
 		response.JsonEncoder(w, nil, 204)
 	}
 }
@@ -123,7 +128,41 @@ func (handler *Handler) acceptOrder() http.HandlerFunc {
 			customErrors.EmptyInput(w)
 			return
 		}
-		// логика принятия заказа исполнителем
+		orderId, err := strconv.Atoi(orderIdStr)
+		if err != nil {
+			customErrors.ServerError(w)
+			return
+		}
+		orderStatus, err := handler.Repository.getOrderStatus(uint(orderId))
+		if err != nil {
+			customErrors.OrderNotFoundError(w)
+			return
+		}
+		if orderStatus != orderStatusSearching {
+			customErrors.OrderStatusChangedError(w)
+			return
+		}
+
+		//здесь должна быть проверка на session_id
+		// если id сесси прошло проверку то изменяем статус заказа передавая id
+
+		var session_id uint
+		session_id = 1
+
+		driver, err := handler.Repository.assignDriver(uint(orderId), session_id)
+		if err != nil {
+			customErrors.AssignDriverError(w)
+			return
+		}
+		_, err = handler.Repository.updateOrderStatus(&OrderStatusResponse{
+			OrderId:     uint(orderId),
+			OrderStatus: orderStatusDriverAssigned,
+		})
+		if err != nil {
+			customErrors.OrderNotFoundError(w)
+			return
+		}
+		response.JsonEncoder(w, driver, 200)
 	}
 }
 

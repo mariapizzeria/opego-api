@@ -45,9 +45,25 @@ func (repo *Repository) cancelOrder(id uint) error {
 }
 
 func (repo *Repository) updateOrderStatus(order *OrderStatusResponse) (*OrderStatusResponse, error) {
-	res := repo.db.Table("order").Where("order_id =? AND canceled_at IS NULL", order.OrderId).Update("order_status", order.OrderStatus)
+	res := repo.db.Table("order").Where("order_id =?", order.OrderId).Update("order_status", order.OrderStatus)
 	if res.Error != nil {
 		return nil, res.Error
 	}
 	return order, nil
+}
+
+func (repo *Repository) assignDriver(orderId, driverId uint) (*Driver, error) {
+	var driver *Driver
+	exist := repo.db.Table("driver").Where("driver_id = ?", driverId).Find(&driver)
+	if exist.Error != nil {
+		return nil, exist.Error
+	}
+	res := repo.db.Table("order").Where("order_id = ? AND driver_assigned IS NULL AND canceled_at IS NULL", orderId).Update("driver_assigned", driver.DriverId)
+	if res.Error != nil {
+		return nil, res.Error
+	}
+	if res.RowsAffected == 0 {
+		return nil, gorm.ErrRecordNotFound
+	}
+	return driver, nil
 }

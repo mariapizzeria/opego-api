@@ -36,3 +36,11 @@ type OrderStatusResponse struct {
 	OrderId     uint   `json:"order_id" gorm:"primary_key"`
 	OrderStatus string `json:"order_status"`
 }
+
+type Driver struct {
+	DriverId  uint   `json:"driver_id" gorm:"primary_key"`
+	Name      string `json:"name"`
+	CarType   string `json:"car_type"`
+	CarNumber string `json:"car_number"`
+	Score     string `json:"score"`
+}
