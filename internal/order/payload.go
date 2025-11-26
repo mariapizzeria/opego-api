@@ -31,3 +31,8 @@ type OrderResponse struct {
 	Comment          string         `json:"comment"`
 	Price            int            `json:"price"`
 }
+
+type OrderStatusResponse struct {
+	OrderId     uint   `json:"order_id" gorm:"primary_key"`
+	OrderStatus string `json:"order_status"`
+}

@@ -11,9 +11,11 @@ import (
 )
 
 const (
-	statusArrivedCode     = "waiting_for_confirmation"
-	orderStatusInProgress = "in_progress"
-	orderStatusCompleted  = "completed"
+	orderStatusWaitingForConfirmation = "waiting_for_confirmation"
+	orderStatusInProgress             = "in_progress"
+	orderStatusCompleted              = "completed"
+	orderStatusSearching              = "searching"
+	orderStatusDriverAssigned         = "driver_assigned"
 )
 
 type Handler struct {
@@ -29,11 +31,12 @@ func NewHandler(router *http.ServeMux, deps HandlerDeps) {
 		deps.Repository,
 	}
 	router.HandleFunc("GET /api/order/{order_id}", handler.getOrderStatus())
-	router.HandleFunc("POST /api/order", handler.createOrder())
-	router.HandleFunc("POST /api/order/{order_id}/cancel", handler.cancelOrder())
+	router.HandleFunc("POST /api/order", handler.createOrder())                   // сделано
+	router.HandleFunc("POST /api/order/{order_id}/cancel", handler.cancelOrder()) // сделано
 	router.HandleFunc("POST /api/order/{order_id}/accept", handler.acceptOrder())
 	router.HandleFunc("POST /api/order/{order_id}/arrived", handler.createArriveCode())
 	router.HandleFunc("PUT /api/order/{order_id}/status", handler.updateOrderStatus())
+	router.HandleFunc("PUT /api/order/{order_id}/status/search", handler.updateOrderStatusSearch())
 }
 
 func (handler *Handler) getOrderStatus() http.HandlerFunc {
@@ -115,8 +118,8 @@ func (handler *Handler) cancelOrder() http.HandlerFunc {
 
 func (handler *Handler) acceptOrder() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		orderId := r.URL.Query().Get("order_id")
-		if orderId == "" {
+		orderIdStr := r.PathValue("order_id")
+		if orderIdStr == "" {
 			customErrors.EmptyInput(w)
 			return
 		}
@@ -126,7 +129,7 @@ func (handler *Handler) acceptOrder() http.HandlerFunc {
 
 func (handler *Handler) createArriveCode() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		orderIdStr := r.URL.Query().Get("order_id")
+		orderIdStr := r.PathValue("order_id")
 		if orderIdStr == "" {
 			customErrors.EmptyInput(w)
 			return
@@ -139,7 +142,7 @@ func (handler *Handler) createArriveCode() http.HandlerFunc {
 		code := notifications.GenerateArrivedCode()
 		result := OrderResponse{
 			OrderId:     uint(orderId),
-			OrderStatus: statusArrivedCode,
+			OrderStatus: orderStatusWaitingForConfirmation,
 			ArrivedCode: code,
 		}
 		response.JsonEncoder(w, result, 200)
@@ -148,11 +151,41 @@ func (handler *Handler) createArriveCode() http.HandlerFunc {
 
 func (handler *Handler) updateOrderStatus() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		orderId := r.URL.Query().Get("order_id")
+		orderId := r.PathValue("order_id")
 		if orderId == "" {
 			customErrors.EmptyInput(w)
 			return
 		}
+		// получение заказа, если статус pending -> search
+		// если водитель подтвердил заказ, то статус заказа меняется с  search а driver_assigned + id водителя
+		// Водитель подъехал - ждет код. Статус меняется на waiting_for_confirmation
+		// Водитель подтвердил начало поездки - статус in_progress
+		// Водитель подтвердил конец поездки - статус completed
 		// Обновление статуса заказа
+	}
+}
+
+// Обновление пользователем статуса заказа при нажатии на кнопку "Заказать"
+func (handler *Handler) updateOrderStatusSearch() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		orderIdStr := r.PathValue("order_id")
+		if orderIdStr == "" {
+			customErrors.EmptyInput(w)
+			return
+		}
+		orderId, err := strconv.Atoi(orderIdStr)
+		if err != nil {
+			customErrors.ServerError(w)
+			return
+		}
+		OrderStatus, err := handler.Repository.updateOrderStatus(&OrderStatusResponse{
+			OrderId:     uint(orderId),
+			OrderStatus: orderStatusSearching,
+		})
+		if err != nil {
+			customErrors.OrderNotFoundError(w)
+			return
+		}
+		response.JsonEncoder(w, OrderStatus, 201)
 	}
 }

@@ -25,7 +25,7 @@ func (repo *Repository) createOrder(order *OrderResponse) (*OrderResponse, error
 
 func (repo *Repository) getOrderStatus(id uint) (string, error) {
 	var orderStatus string
-	res := repo.db.Table("order").Select("order_status").Where("order_id = ? AND canceled_at = NULL", id).Find(&orderStatus)
+	res := repo.db.Table("order").Select("order_status").Where("order_id = ? AND canceled_at IS NULL", id).Find(&orderStatus)
 	if res.Error != nil {
 		return "", res.Error
 	}
@@ -34,7 +34,7 @@ func (repo *Repository) getOrderStatus(id uint) (string, error) {
 
 func (repo *Repository) cancelOrder(id uint) error {
 	var now = time.Now()
-	res := repo.db.Table("order").Where("order_id = ? AND canceled_at = NULL", id).Update("canceled_at", now)
+	res := repo.db.Table("order").Where("order_id = ? AND canceled_at IS NULL", id).Update("canceled_at", now)
 	if res.Error != nil {
 		return res.Error
 	}
@@ -42,4 +42,12 @@ func (repo *Repository) cancelOrder(id uint) error {
 		return gorm.ErrRecordNotFound
 	}
 	return nil
+}
+
+func (repo *Repository) updateOrderStatus(order *OrderStatusResponse) (*OrderStatusResponse, error) {
+	res := repo.db.Table("order").Where("order_id =? AND canceled_at IS NULL", order.OrderId).Update("order_status", order.OrderStatus)
+	if res.Error != nil {
+		return nil, res.Error
+	}
+	return order, nil
 }
