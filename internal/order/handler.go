@@ -38,7 +38,7 @@ func NewHandler(router *http.ServeMux, deps HandlerDeps) {
 	handler := Handler{
 		deps.Repository,
 	}
-	router.HandleFunc("GET /api/order/{order_id}", handler.getOrderStatus())
+	router.HandleFunc("GET /api/order/{order_id}", handler.getOrderStatus())                        // сделано
 	router.HandleFunc("POST /api/order", handler.createOrder())                                     // сделано
 	router.HandleFunc("POST /api/order/{order_id}/cancel", handler.cancelOrder())                   // сделано
 	router.HandleFunc("POST /api/order/{order_id}/accept", handler.acceptOrder())                   // частично сделано. Добавить проверку кук пользователя
@@ -57,12 +57,12 @@ func (handler *Handler) getOrderStatus() http.HandlerFunc {
 		}
 		orderId, err := strconv.ParseUint(orderIdStr, 10, 64)
 		if err != nil {
-			customErrors.ServerError(w)
+			customErrors.ParseDataError(w, err)
 			return
 		}
 		conn, err := grpc.NewClient("localhost:50051", grpc.WithTransportCredentials(insecure.NewCredentials()))
 		if err != nil {
-			customErrors.ServerError(w)
+			customErrors.ServerError(w, err)
 			return
 		}
 		defer conn.Close()
@@ -75,7 +75,7 @@ func (handler *Handler) getOrderStatus() http.HandlerFunc {
 
 		stream, err := client.SendStatus(r.Context(), req)
 		if err != nil {
-			customErrors.ServerError(w)
+			customErrors.ServerError(w, err)
 			return
 		}
 
@@ -100,7 +100,7 @@ func (handler *Handler) createOrder() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body, err := response.HandleBody[OrderRequest](w, r)
 		if err != nil {
-			customErrors.ServerError(w)
+			customErrors.ParseDataError(w, err)
 			return
 		}
 		price, err := priceCalculator.PriceCalculation(
@@ -110,7 +110,7 @@ func (handler *Handler) createOrder() http.HandlerFunc {
 			body.SelectedServices,
 		)
 		if err != nil {
-			customErrors.ServerError(w)
+			customErrors.CalculationError(w, err)
 			return
 		}
 		result, err := handler.Repository.createOrder(&OrderResponse{
@@ -124,7 +124,7 @@ func (handler *Handler) createOrder() http.HandlerFunc {
 			Price:            price,
 		})
 		if err != nil {
-			customErrors.ServerError(w)
+			customErrors.CreateRecordError(w, err)
 			return
 		}
 		response.JsonEncoder(w, result, 201)
@@ -141,12 +141,12 @@ func (handler *Handler) cancelOrder() http.HandlerFunc {
 		}
 		idUint, err := strconv.ParseUint(orderIdStr, 10, 64)
 		if err != nil {
-			customErrors.ServerError(w)
+			customErrors.ParseDataError(w, err)
 			return
 		}
 		orderStatus, err := handler.Repository.getOrderStatus(uint(idUint))
 		if err != nil {
-			customErrors.ServerError(w)
+			customErrors.UpdateRecordError(w, err)
 			return
 		}
 		if orderStatus == orderStatusCompleted || orderStatus == orderStatusInProgress {
@@ -155,7 +155,7 @@ func (handler *Handler) cancelOrder() http.HandlerFunc {
 		}
 		err = handler.Repository.cancelOrder(uint(idUint))
 		if err != nil {
-			customErrors.OrderNotFoundError(w)
+			customErrors.UpdateRecordError(w, err)
 			return
 		}
 		_, err = handler.Repository.updateOrderStatus(&OrderStatusResponse{
@@ -170,7 +170,7 @@ func (handler *Handler) acceptDriverStatus() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body, err := response.HandleBody[Driver](w, r)
 		if err != nil {
-			customErrors.ServerError(w)
+			customErrors.ParseDataError(w, err)
 			return
 		}
 		res, err := handler.Repository.updateDriverStatus(&DriverStatus{
@@ -179,7 +179,7 @@ func (handler *Handler) acceptDriverStatus() http.HandlerFunc {
 			CurrentLocation: body.CurrentLocation,
 		})
 		if err != nil {
-			customErrors.DriverIsNotAvailable(w)
+			customErrors.DriverIsNotAvailable(w, err)
 			return
 		}
 		response.JsonEncoder(w, res, 200)
@@ -195,12 +195,12 @@ func (handler *Handler) acceptOrder() http.HandlerFunc {
 		}
 		orderId, err := strconv.Atoi(orderIdStr)
 		if err != nil {
-			customErrors.ServerError(w)
+			customErrors.ParseDataError(w, err)
 			return
 		}
 		orderStatus, err := handler.Repository.getOrderStatus(uint(orderId))
 		if err != nil {
-			customErrors.OrderNotFoundError(w)
+			customErrors.GetRecordError(w, err)
 			return
 		}
 		if orderStatus != orderStatusSearching {
@@ -216,7 +216,7 @@ func (handler *Handler) acceptOrder() http.HandlerFunc {
 
 		driver, err := handler.Repository.assignDriver(uint(orderId), session_id)
 		if err != nil {
-			customErrors.AssignDriverError(w)
+			customErrors.AssignDriverError(w, err)
 			return
 		}
 		_, err = handler.Repository.updateOrderStatus(&OrderStatusResponse{
@@ -224,7 +224,7 @@ func (handler *Handler) acceptOrder() http.HandlerFunc {
 			OrderStatus: orderStatusDriverAssigned,
 		})
 		if err != nil {
-			customErrors.OrderNotFoundError(w)
+			customErrors.UpdateRecordError(w, err)
 			return
 		}
 		response.JsonEncoder(w, driver, 200)
@@ -240,7 +240,7 @@ func (handler *Handler) createArriveCode() http.HandlerFunc {
 		}
 		orderId, err := strconv.Atoi(orderIdStr)
 		if err != nil {
-			customErrors.ServerError(w)
+			customErrors.ParseDataError(w, err)
 			return
 		}
 		code := notifications.GenerateArrivedCode()
@@ -250,7 +250,7 @@ func (handler *Handler) createArriveCode() http.HandlerFunc {
 			ArrivedCode: code,
 		})
 		if err != nil {
-			customErrors.ServerError(w)
+			customErrors.CreateRecordError(w, err)
 			return
 		}
 		response.JsonEncoder(w, result, 200)
@@ -266,12 +266,12 @@ func (handler *Handler) updateOrderStatus() http.HandlerFunc {
 		}
 		orderId, err := strconv.Atoi(orderIdStr)
 		if err != nil {
-			customErrors.ServerError(w)
+			customErrors.ParseDataError(w, err)
 			return
 		}
 		body, err := response.HandleBody[OrderStatusResponse](w, r)
 		if err != nil {
-			customErrors.ServerError(w)
+			customErrors.ParseDataError(w, err)
 			return
 		}
 		res, err := handler.Repository.updateOrderStatus(&OrderStatusResponse{
@@ -295,7 +295,7 @@ func (handler *Handler) updateOrderStatusSearch() http.HandlerFunc {
 		}
 		orderId, err := strconv.Atoi(orderIdStr)
 		if err != nil {
-			customErrors.ServerError(w)
+			customErrors.ParseDataError(w, err)
 			return
 		}
 		OrderStatus, err := handler.Repository.updateOrderStatus(&OrderStatusResponse{
@@ -303,7 +303,7 @@ func (handler *Handler) updateOrderStatusSearch() http.HandlerFunc {
 			OrderStatus: orderStatusSearching,
 		})
 		if err != nil {
-			customErrors.OrderNotFoundError(w)
+			customErrors.UpdateRecordError(w, err)
 			return
 		}
 		response.JsonEncoder(w, OrderStatus, 201)
