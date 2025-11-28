@@ -1,10 +1,12 @@
 package order
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/mariapizzeria/opego-api/pkg/db"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type Repository struct {
@@ -45,9 +47,17 @@ func (repo *Repository) cancelOrder(id uint) error {
 }
 
 func (repo *Repository) updateOrderStatus(order *OrderStatusResponse) (*OrderStatusResponse, error) {
+	now := time.Now()
 	res := repo.db.Table("order").Where("order_id =?", order.OrderId).Update("order_status", order.OrderStatus)
 	if res.Error != nil {
 		return nil, res.Error
+	}
+	fmt.Print(order.OrderStatus)
+	if order.OrderStatus == orderStatusCompleted {
+		r := repo.db.Table("order").Where("order_id =?", order.OrderId).Update("completed_at", now)
+		if r.Error != nil {
+			return nil, r.Error
+		}
 	}
 	return order, nil
 }
@@ -77,4 +87,15 @@ func (repo *Repository) updateDriverStatus(driver *DriverStatus) (*DriverStatus,
 		return nil, res.Error
 	}
 	return driver, nil
+}
+
+func (repo *Repository) createConfirmationCode(order *ConfirmationCode) (*ConfirmationCode, error) {
+	res := repo.db.Table("order").Clauses(clause.Returning{}).Updates(&order)
+	if res.Error != nil {
+		return nil, res.Error
+	}
+	if res.RowsAffected == 0 {
+		return nil, gorm.ErrRecordNotFound
+	}
+	return order, nil
 }
