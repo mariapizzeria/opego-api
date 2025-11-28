@@ -1,13 +1,20 @@
 package order
 
 import (
+	"fmt"
+	"io"
+	"log"
 	"net/http"
 	"strconv"
 
 	"github.com/mariapizzeria/opego-api/pkg/customErrors"
+	"github.com/mariapizzeria/opego-api/pkg/headerWriter"
 	"github.com/mariapizzeria/opego-api/pkg/response"
 	"github.com/mariapizzeria/opego-api/services/notifications"
 	"github.com/mariapizzeria/opego-api/services/priceCalculator"
+	pb "github.com/mariapizzeria/opego-api/services/streaming/pb/proto"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 const (
@@ -43,12 +50,50 @@ func NewHandler(router *http.ServeMux, deps HandlerDeps) {
 
 func (handler *Handler) getOrderStatus() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		orderId := r.URL.Query().Get("order_id")
-		if orderId == "" {
+		orderIdStr := r.PathValue("order_id")
+		if orderIdStr == "" {
 			customErrors.EmptyInput(w)
 			return
 		}
-		// Далее логика получение статуса в реальном времени
+		orderId, err := strconv.ParseUint(orderIdStr, 10, 64)
+		if err != nil {
+			customErrors.ServerError(w)
+			return
+		}
+		conn, err := grpc.NewClient("localhost:50051", grpc.WithTransportCredentials(insecure.NewCredentials()))
+		if err != nil {
+			customErrors.ServerError(w)
+			return
+		}
+		defer conn.Close()
+
+		client := pb.NewStreamClient(conn)
+
+		req := &pb.UserMessage{
+			OrderId: uint32(orderId),
+		}
+
+		stream, err := client.SendStatus(r.Context(), req)
+		if err != nil {
+			log.Println(err)
+			customErrors.ServerError(w)
+			return
+		}
+
+		headerWriter.WriteHeader(w)
+
+		for {
+			statusMsg, err := stream.Recv()
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				log.Printf("Stream error: %v", err)
+				break
+			}
+			fmt.Fprintf(w, "data: %s\n\n", statusMsg.OrderStatus)
+			w.(http.Flusher).Flush()
+		}
 	}
 }
 
@@ -230,10 +275,6 @@ func (handler *Handler) updateOrderStatus() http.HandlerFunc {
 			customErrors.ServerError(w)
 			return
 		}
-		if body.OrderStatus != orderStatusCompleted || body.OrderStatus != orderStatusInProgress {
-			customErrors.InvalidStatusError(w)
-			return
-		}
 		res, err := handler.Repository.updateOrderStatus(&OrderStatusResponse{
 			OrderId:     uint(orderId),
 			OrderStatus: body.OrderStatus,
@@ -246,7 +287,6 @@ func (handler *Handler) updateOrderStatus() http.HandlerFunc {
 	}
 }
 
-// Обновление пользователем статуса заказа при нажатии на кнопку "Заказать"
 func (handler *Handler) updateOrderStatusSearch() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		orderIdStr := r.PathValue("order_id")

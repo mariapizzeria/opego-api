@@ -1,0 +1,21 @@
+syntax = 'proto3';
+
+package opego.v1;
+
+option go_package = "github.com/mariapizzeria/opego-api/pb";
+
+message StatusMessage {
+  string order_status = 2;
+  int64 timestamp =3;
+}
+
+message UserMessage{
+  reserved 1;
+  //uint32 user_id = 1;
+  uint32 order_id = 2;
+}
+
+service Stream {
+  rpc SendStatus(UserMessage) returns (stream StatusMessage);
+}
+
