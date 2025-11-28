@@ -42,6 +42,10 @@ func (repo *Repository) cancelOrder(id uint) error {
 	if res.RowsAffected == 0 {
 		return gorm.ErrRecordNotFound
 	}
+	upt := repo.db.Table("order").Where("order_id = ?", id).Update("updated_at", now)
+	if upt.Error != nil {
+		return upt.Error
+	}
 	return nil
 }
 
@@ -56,6 +60,10 @@ func (repo *Repository) updateOrderStatus(order *OrderStatusResponse) (*OrderSta
 		if r.Error != nil {
 			return nil, r.Error
 		}
+	}
+	upt := repo.db.Table("order").Where("order_id = ?", order.OrderId).Update("updated_at", now)
+	if upt.Error != nil {
+		return nil, upt.Error
 	}
 	return order, nil
 }
@@ -76,6 +84,11 @@ func (repo *Repository) assignDriver(orderId, driverId uint) (*Driver, error) {
 	if res.RowsAffected == 0 {
 		return nil, gorm.ErrRecordNotFound
 	}
+	now := time.Now()
+	upt := repo.db.Table("order").Where("order_id = ?", orderId).Update("updated_at", now)
+	if upt.Error != nil {
+		return nil, upt.Error
+	}
 	return driver, nil
 }
 
@@ -94,6 +107,11 @@ func (repo *Repository) createConfirmationCode(order *ConfirmationCode) (*Confir
 	}
 	if res.RowsAffected == 0 {
 		return nil, gorm.ErrRecordNotFound
+	}
+	now := time.Now()
+	upt := repo.db.Table("order").Where("order_id = ?", order.OrderId).Update("updated_at", now)
+	if upt.Error != nil {
+		return nil, upt.Error
 	}
 	return order, nil
 }
