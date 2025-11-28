@@ -230,6 +230,10 @@ func (handler *Handler) updateOrderStatus() http.HandlerFunc {
 			customErrors.ServerError(w)
 			return
 		}
+		if body.OrderStatus != orderStatusCompleted || body.OrderStatus != orderStatusInProgress {
+			customErrors.InvalidStatusError(w)
+			return
+		}
 		res, err := handler.Repository.updateOrderStatus(&OrderStatusResponse{
 			OrderId:     uint(orderId),
 			OrderStatus: body.OrderStatus,

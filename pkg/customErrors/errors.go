@@ -29,3 +29,7 @@ func AssignDriverError(w http.ResponseWriter) {
 func DriverIsNotAvailable(w http.ResponseWriter) {
 	http.Error(w, "Driver is not available", http.StatusMethodNotAllowed)
 }
+
+func InvalidStatusError(w http.ResponseWriter) {
+	http.Error(w, "Invalid status", http.StatusBadRequest)
+}

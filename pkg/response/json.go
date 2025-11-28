@@ -5,7 +5,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/go-playground/validator/v10"
+	"github.com/mariapizzeria/opego-api/pkg/validators"
 )
 
 func JsonEncoder(w http.ResponseWriter, res any, status int) {
@@ -20,7 +20,7 @@ func HandleBody[T any](w http.ResponseWriter, r *http.Request) (*T, error) {
 		JsonEncoder(w, err.Error(), http.StatusBadRequest)
 		return nil, err
 	}
-	err = IsValid(body)
+	err = validators.IsValid(body)
 	if err != nil {
 		JsonEncoder(w, err.Error(), http.StatusBadRequest)
 		return nil, err
@@ -36,10 +36,4 @@ func decodeBody[T any](body io.ReadCloser) (T, error) {
 		return payload, err
 	}
 	return payload, nil
-}
-
-func IsValid[T any](body T) error {
-	valid := validator.New()
-	err := valid.Struct(body)
-	return err
 }

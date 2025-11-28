@@ -1,7 +1,6 @@
 package order
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/mariapizzeria/opego-api/pkg/db"
@@ -52,7 +51,6 @@ func (repo *Repository) updateOrderStatus(order *OrderStatusResponse) (*OrderSta
 	if res.Error != nil {
 		return nil, res.Error
 	}
-	fmt.Print(order.OrderStatus)
 	if order.OrderStatus == orderStatusCompleted {
 		r := repo.db.Table("order").Where("order_id =?", order.OrderId).Update("completed_at", now)
 		if r.Error != nil {
