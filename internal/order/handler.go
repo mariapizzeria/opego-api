@@ -75,7 +75,6 @@ func (handler *Handler) getOrderStatus() http.HandlerFunc {
 
 		stream, err := client.SendStatus(r.Context(), req)
 		if err != nil {
-			log.Println(err)
 			customErrors.ServerError(w)
 			return
 		}
