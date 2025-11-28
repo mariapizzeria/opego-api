@@ -174,9 +174,12 @@ func (handler *Handler) acceptDriverStatus() http.HandlerFunc {
 			return
 		}
 		res, err := handler.Repository.updateDriverStatus(&DriverStatus{
-			DriverId:        body.DriverId,
-			Available:       body.Available,
-			CurrentLocation: body.CurrentLocation,
+			DriverId:  body.DriverId,
+			Available: body.Available,
+			CurrentLocation: DriverLocation{
+				Ing: body.CurrentLocation.Ing,
+				Lat: body.CurrentLocation.Lat,
+			},
 		})
 		if err != nil {
 			customErrors.DriverIsNotAvailable(w, err)

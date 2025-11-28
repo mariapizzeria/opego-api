@@ -39,19 +39,24 @@ type OrderStatusResponse struct {
 }
 
 type Driver struct {
-	DriverId        uint   `json:"driver_id" gorm:"primary_key"`
-	Name            string `json:"name"`
-	CarType         string `json:"car_type"`
-	CarNumber       string `json:"car_number"`
-	Score           string `json:"score"`
-	Available       bool   `json:"available"`
-	CurrentLocation string `json:"current_location"`
+	DriverId        uint           `json:"driver_id" gorm:"primary_key"`
+	Name            string         `json:"name"`
+	CarType         string         `json:"car_type"`
+	CarNumber       string         `json:"car_number"`
+	Score           string         `json:"score"`
+	Available       bool           `json:"available"`
+	CurrentLocation DriverLocation `json:"current_location" gorm:"type:jsonb" validate:"required"`
 }
 
 type DriverStatus struct {
-	DriverId        uint   `json:"driver_id" gorm:"primary_key"`
-	Available       bool   `json:"available" validate:"required"`
-	CurrentLocation string `json:"current_location" validate:"required"`
+	DriverId        uint           `json:"driver_id" gorm:"primary_key"`
+	Available       bool           `json:"available" validate:"required"`
+	CurrentLocation DriverLocation `json:"current_location" gorm:"type:jsonb" validate:"required"`
+}
+
+type DriverLocation struct {
+	Lat float64 `json:"lat"`
+	Ing float64 `json:"ing"`
 }
 
 type ConfirmationCode struct {
