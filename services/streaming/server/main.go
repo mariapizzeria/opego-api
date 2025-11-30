@@ -31,6 +31,18 @@ func (s *Server) SendStatus(req *pb.UserMessage, stream pb.Stream_SendStatusServ
 				continue
 			}
 
+			if status == nil {
+				finalStatus := &pb.StatusMessage{
+					OrderStatus: "completed / canceled",
+					Timestamp:   time.Now().Unix(),
+					IsFinal:     true,
+				}
+				if err := stream.Send(finalStatus); err != nil {
+					log.Printf("Failed to send final status: %v", err)
+				}
+				return nil
+			}
+
 			if err := stream.Send(status); err != nil {
 				return err
 			}
@@ -47,6 +59,9 @@ func (s *Server) getOrderStatusFromDB(id uint32) (*pb.StatusMessage, error) {
 	res := s.db.Table("order").Select("order_status").Where("order_id = ?", id).Scan(&status)
 	if res.Error != nil {
 		return nil, res.Error
+	}
+	if status == "canceled" || status == "completed" {
+		return nil, nil
 	}
 	return &pb.StatusMessage{
 		OrderStatus: status,
