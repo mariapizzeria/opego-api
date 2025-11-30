@@ -69,3 +69,9 @@ func GetRecordError(w http.ResponseWriter, err error) {
 		Error: err.Error(),
 	}, 422)
 }
+
+func GetOrderStatusError(w http.ResponseWriter, err error) {
+	response.JsonEncoder(w, CustomErrors{
+		Error: err.Error(),
+	}, 422)
+}

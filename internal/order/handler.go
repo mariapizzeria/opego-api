@@ -38,6 +38,7 @@ func NewHandler(router *http.ServeMux, deps HandlerDeps) {
 	handler := Handler{
 		deps.Repository,
 	}
+	router.HandleFunc("GET /api/order/{order_id}/http", handler.getOrderStatusHttp())
 	router.HandleFunc("GET /api/order/{order_id}", handler.getOrderStatus())                        // сделано
 	router.HandleFunc("POST /api/order", handler.createOrder())                                     // сделано
 	router.HandleFunc("POST /api/order/{order_id}/cancel", handler.cancelOrder())                   // сделано
@@ -46,6 +47,27 @@ func NewHandler(router *http.ServeMux, deps HandlerDeps) {
 	router.HandleFunc("POST /api/order/{order_id}/arrived", handler.createArriveCode())             //сделано
 	router.HandleFunc("PUT /api/order/{order_id}/status", handler.updateOrderStatus())              //сделано
 	router.HandleFunc("PUT /api/order/{order_id}/status/search", handler.updateOrderStatusSearch()) // сделано
+}
+
+func (handler *Handler) getOrderStatusHttp() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		orderIdStr := r.PathValue("order_id")
+		if orderIdStr == "" {
+			customErrors.EmptyInput(w)
+			return
+		}
+		orderId, err := strconv.ParseUint(orderIdStr, 10, 64)
+		if err != nil {
+			customErrors.ParseDataError(w, err)
+			return
+		}
+		res, err := handler.Repository.getOrderStatus(uint(orderId))
+		if err != nil {
+			customErrors.GetOrderStatusError(w, err)
+			return
+		}
+		response.JsonEncoder(w, res, 200)
+	}
 }
 
 func (handler *Handler) getOrderStatus() http.HandlerFunc {
