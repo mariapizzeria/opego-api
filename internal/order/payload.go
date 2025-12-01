@@ -45,13 +45,13 @@ type Driver struct {
 	CarNumber       string         `json:"car_number"`
 	Score           string         `json:"score"`
 	Available       bool           `json:"available"`
-	CurrentLocation DriverLocation `json:"current_location" gorm:"type:jsonb" validate:"required"`
+	CurrentLocation DriverLocation `json:"current_location" gorm:"type:jsonb;serializer:json" validate:"required"`
 }
 
 type DriverStatus struct {
 	DriverId        uint           `json:"driver_id" gorm:"primary_key"`
 	Available       bool           `json:"available" validate:"required"`
-	CurrentLocation DriverLocation `json:"current_location" gorm:"type:jsonb" validate:"required"`
+	CurrentLocation DriverLocation `json:"current_location" gorm:"type:jsonb;serializer:json" validate:"required"`
 }
 
 type DriverLocation struct {

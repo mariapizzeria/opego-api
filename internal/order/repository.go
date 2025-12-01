@@ -68,15 +68,16 @@ func (repo *Repository) updateOrderStatus(order *OrderStatusResponse) (*OrderSta
 	return order, nil
 }
 
-func (repo *Repository) assignDriver(orderId, driverId uint) (*Driver, error) {
+func (repo *Repository) getDriverById(id uint) (*Driver, error) {
 	var driver *Driver
-	driverStatus := repo.db.Table("driver").Where("driver_id = ? AND available", driverId).Find(&driver)
-	if driverStatus.Error != nil {
-		return nil, driverStatus.Error
+	err := repo.db.Table("driver").Where("driver_id = ? AND available", id).First(&driver).Error
+	if err != nil {
+		return nil, err
 	}
-	if driverStatus.RowsAffected == 0 {
-		return driver, gorm.ErrRecordNotFound
-	}
+	return driver, nil
+}
+
+func (repo *Repository) assignDriver(orderId uint, driver *Driver) (*Driver, error) {
 	res := repo.db.Table("order").Where("order_id = ? AND driver_assigned IS NULL AND canceled_at IS NULL", orderId).Update("driver_assigned", driver.DriverId)
 	if res.Error != nil {
 		return nil, res.Error

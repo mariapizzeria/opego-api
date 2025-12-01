@@ -13,7 +13,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-func main() {
+func App() http.Handler {
 	config := configs.LoadConfig()
 	newDB := db.NewDb(config)
 	router := http.NewServeMux()
@@ -37,9 +37,14 @@ func main() {
 	order.NewHandler(router, order.HandlerDeps{
 		Repository: orderRepository,
 	})
+	return router
+}
+
+func main() {
+	app := App()
 	server := &http.Server{
 		Addr:    ":8080",
-		Handler: router,
+		Handler: app,
 	}
 	log.Println("Server is listening")
 	server.ListenAndServe()

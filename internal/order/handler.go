@@ -237,9 +237,13 @@ func (handler *Handler) acceptOrder() http.HandlerFunc {
 		// если id сесси прошло проверку то изменяем статус заказа передавая id
 
 		var session_id uint
-		session_id = 2
-
-		driver, err := handler.Repository.assignDriver(uint(orderId), session_id)
+		session_id = 1
+		getDriver, err := handler.Repository.getDriverById(session_id)
+		if err != nil {
+			customErrors.GetRecordError(w, err)
+			return
+		}
+		driver, err := handler.Repository.assignDriver(uint(orderId), getDriver)
 		if err != nil {
 			customErrors.AssignDriverError(w, err)
 			return
